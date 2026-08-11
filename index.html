@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>서녹씨 재고 + 매출 0.1.4</title>
+<style>
+  :root{--bg:#fbf6ea;--card:#fffdf9;--ink:#2b2822;--muted:#7d766a;--line:#e8dfcf;--accent:#496f56;--accent2:#e94b43;--danger:#d9473f;--warn:#a8751f}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
+  .app{max-width:680px;margin:0 auto;padding:18px 14px 100px}.top{padding:10px 4px 16px}.top h1{margin:0;font-size:24px}.top p{margin:7px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+  .panel,.item{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 3px 14px rgba(0,0,0,.035)}
+  .panel{padding:14px;margin-bottom:14px}.form{display:grid;grid-template-columns:1fr 92px 108px;gap:8px}.form input,.form select{width:100%;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:15px;background:#fff}.customUnit{grid-column:1/-1;display:none}.form button,.btn{border:0;border-radius:12px;min-height:44px;font-weight:700;cursor:pointer}.add{grid-column:1/-1;background:var(--accent);color:white}
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px;text-align:center}.stat b{display:block;font-size:20px}.stat span{font-size:11px;color:var(--muted)}
+  .list{display:grid;gap:10px}.item{padding:14px}.item.low{border-color:#dbc390}.item.zero{border-color:#e1aaa6}.row{display:flex;align-items:center;gap:10px}.name{font-size:16px;font-weight:800;word-break:break-all;flex:1}.badge{font-size:11px;border-radius:999px;padding:4px 8px;background:#f0ece5;color:var(--muted)}.badge.low{background:#fff3d9;color:var(--warn)}.badge.zero{background:#fde8e6;color:var(--danger)}
+  .qty{font-size:36px;font-weight:900;letter-spacing:-1px;margin:12px 0 10px}.qty small{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px}
+  .actions{display:grid;grid-template-columns:1.35fr .8fr .8fr;gap:7px}.sell{background:var(--accent);color:white}.undo{background:#eee9e1;color:var(--ink)}.edit{background:#f7f4ef;color:var(--ink);border:1px solid var(--line)}
+  .subactions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}.linkbtn{border:0;background:transparent;color:var(--muted);font-size:12px;padding:3px;cursor:pointer}.linkbtn.del{color:var(--danger)}
+  .empty{text-align:center;color:var(--muted);padding:36px 12px;background:#fff;border:1px dashed var(--line);border-radius:18px}
+  .footerbar{position:fixed;left:0;right:0;bottom:0;background:rgba(246,243,237,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}.footerin{max-width:680px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}.footerin button{height:42px;border-radius:12px;border:1px solid var(--line);background:white;font-weight:700}.footerin .danger{color:var(--danger)}
+  dialog{border:0;border-radius:18px;padding:0;max-width:360px;width:calc(100% - 30px);box-shadow:0 20px 60px rgba(0,0,0,.22)}dialog::backdrop{background:rgba(0,0,0,.3)}.modal{padding:18px}.modal h2{margin:0 0 14px;font-size:18px}.modal input,.modal select{width:100%;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:16px;background:#fff}.modal .stack{display:grid;gap:8px}.modal .macts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.modal button{height:42px;border:0;border-radius:12px;font-weight:700}.modal .ok{background:var(--accent);color:white}
+
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+  .tabbtn{height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;font-weight:800}
+  .tabbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .tabpage{display:none}.tabpage.active{display:block}
+  .salesTotal{font-size:40px;font-weight:900;letter-spacing:-1px;margin:6px 0}
+  .salesGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .salesGrid button{border:0;border-radius:12px;min-height:46px;font-weight:800;background:#eee9e1}
+  .salesRow{display:grid;grid-template-columns:1fr 100px;gap:8px;margin-top:10px}
+  .salesRow input{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:16px}
+  .salesRow button{border:0;border-radius:12px;font-weight:800;background:var(--accent);color:#fff}
+  .salesList{display:grid;gap:8px;margin-top:10px}
+  .salesEntry{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+  .salesEntry small{color:var(--muted)}
+  .scanbox{display:none;margin-top:10px;border-radius:14px;overflow:hidden;background:#111}
+  .scanbox video{width:100%;display:block;max-height:320px;object-fit:cover}
+  .salesHint{font-size:12px;color:var(--muted);line-height:1.5}
+
+
+  .top h1{color:#365c45}
+  .tabs{background:#f2eadb;padding:5px;border-radius:15px}
+  .tabbtn.active{box-shadow:0 3px 10px rgba(73,111,86,.18)}
+  .panel{border-color:#e9dfcd}
+  .add,.sell,.modal .ok,.salesRow button{background:var(--accent)!important}
+  #salesTabBtn.active{background:var(--accent2)!important;border-color:var(--accent2)!important}
+  #salesPage .salesTotal{color:var(--accent2)}
+  #salesPage [data-sales-price]{background:#fff0eb;color:#b93631;border:1px solid #f2d3cc}
+  .reorderPanel{padding:12px 14px}
+  .reorderHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .reorderHead b{color:#365c45}
+  .lockState{font-size:12px;color:var(--muted)}
+  .item.dragging{opacity:.45;transform:scale(.985)}
+  .item[draggable="true"]{cursor:grab}
+  .orderTools{display:flex;gap:6px;margin-top:10px}
+  .orderTools button{flex:1;min-height:38px;border:1px solid var(--line);background:#fffdf9;border-radius:10px;font-weight:700}
+  .orderTools button:disabled{opacity:.35}
+  .orderNum{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:12px;font-weight:800;flex:none}
+
+
+  .countClock{font-size:28px;font-weight:900;color:#365c45;letter-spacing:-.5px;margin:6px 0}
+  .countMeta{font-size:12px;color:var(--muted);line-height:1.5}
+  .postSaleForm{display:grid;grid-template-columns:1.4fr .65fr;gap:8px;margin-top:10px}
+  .postSaleForm select,.postSaleForm input,.postSaleForm textarea{
+    width:100%;border:1px solid var(--line);border-radius:12px;background:#fffdf9;padding:10px 12px;font-size:14px
+  }
+  .postSaleForm textarea{grid-column:1/-1;min-height:74px;resize:vertical}
+  .postSaleForm .full{grid-column:1/-1}
+  .postSaleList{display:grid;gap:8px;margin-top:10px}
+  .postSaleEntry{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 12px}
+  .postSaleEntry .topline{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .postSaleEntry small{color:var(--muted);line-height:1.4}
+  .expected{margin-top:8px;padding:8px 10px;border-radius:10px;background:#eef4ef;color:#365c45;font-size:13px;font-weight:800}
+  .expected.warn{background:#fff3d9;color:#8b651d}
+
+</style>
+  <link rel="icon" href="icon.png">
+</head>
+<body>
+<div class="app">
+  <div class="tabs">
+    <button class="tabbtn active" id="stockTabBtn">재고조사</button>
+    <button class="tabbtn" id="salesTabBtn">매출계산</button>
+  </div>
+  <div id="stockPage" class="tabpage active">
+  <header class="top"><h1>재고조사 <small style="font-size:12px;color:#8a8379">0.1.4</small></h1><p>재고를 센 시점의 수량을 적어두고, 물건이 나갈 때 재고만 1씩 줄이세요.<br>기록은 이 기기의 브라우저에 자동 저장됩니다.</p></header>
+
+  <section class="panel">
+    <div class="form">
+      <input id="name" placeholder="상품명 (예: 딸기모찌 6구)" autocomplete="off">
+      <input id="qty" type="number" inputmode="numeric" min="0" placeholder="수량">
+      <select id="unit" aria-label="단위">
+        <option value="개">개</option><option value="박스">박스</option><option value="팩">팩</option><option value="장">장</option><option value="세트">세트</option><option value="__custom">직접입력</option>
+      </select>
+      <input id="customUnit" class="customUnit" maxlength="12" placeholder="단위 직접 입력 (예: 봉, 묶음)">
+      <input id="lowThreshold" type="number" inputmode="numeric" min="0" placeholder="재고 부족 기준 (선택)" style="grid-column:1/-1">
+      <button class="add" id="addBtn">상품 등록</button>
+    </div>
+  </section>
+
+  <section class="summary">
+    <div class="stat"><b id="types">0</b><span>상품 종류</span></div>
+    <div class="stat"><b id="remain">0</b><span>남은 총수량</span></div>
+    <div class="stat"><b id="lowCount">0</b><span>재고 부족</span></div>
+  </section>
+
+  <section class="panel reorderPanel">
+    <div class="reorderHead">
+      <div>
+        <b>재고 순서</b>
+        <div class="lockState" id="orderState">순서 고정됨</div>
+      </div>
+      <button class="btn" id="toggleOrder" style="padding:0 14px;background:#eef4ef;color:#365c45">순서 변경</button>
+    </div>
+    <div class="salesHint" style="margin-top:8px">
+      순서 변경을 켜면 ▲/▼로 상품 위치를 바꿀 수 있습니다. 끝나면 다시 고정하세요.
+    </div>
+  </section>
+
+  <section class="panel">
+    <div style="font-weight:800;color:#365c45">재고 기준시각</div>
+    <div class="countClock" id="countedAtText">아직 기록 없음</div>
+    <div class="countMeta" id="countedAtMeta">
+      재고를 다 센 순간에 버튼을 누르면, 그 시각의 수량을 기준으로 저장합니다.
+    </div>
+    <button class="btn" id="markCountDone" style="width:100%;margin-top:10px;background:var(--accent);color:#fff">
+      지금 수량을 기준재고로 저장
+    </button>
+  </section>
+
+  <section class="panel">
+    <div style="font-weight:800;color:#365c45">기준시각 이후 판매 메모</div>
+    <div class="salesHint" style="margin-top:6px">
+      내가 쉰 뒤 다른 직원이 판매한 수량을 적으면 기준재고에서 자동으로 빼서 예상재고를 계산합니다.
+    </div>
+    <div class="postSaleForm">
+      <select id="postSaleItem"></select>
+      <input id="postSaleQty" type="number" inputmode="numeric" min="1" placeholder="판매수량">
+      <textarea id="postSaleMemo" placeholder="메모 (선택) 예: 휴게시간 중 판매"></textarea>
+      <button class="btn full" id="addPostSale" style="background:#e94b43;color:white">판매 메모 추가</button>
+    </div>
+    <div class="postSaleList" id="postSaleList"></div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <div style="font-weight:800;margin-bottom:6px">데이터 백업</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px">버전이 바뀌거나 다른 파일로 옮길 때 사용하세요.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn" id="exportData" style="background:#eee9e1">백업 내보내기</button>
+      <button class="btn" id="importData" style="background:#f7f4ef;border:1px solid var(--line)">백업 불러오기</button>
+      <button class="btn" id="saveImage" style="grid-column:1/-1;background:#fff;border:1px solid var(--line)">현재 재고 이미지 저장</button>
+      <input id="importFile" type="file" accept="application/json,.json" style="display:none">
+    </div>
+  </section>
+
+  <main id="list" class="list"></main>
+  </div>
+
+  <div id="salesPage" class="tabpage">
+    <header class="top">
+      <h1>매출계산 <small style="font-size:12px;color:#8a8379">0.1.4</small></h1>
+      <p>바코드를 찍거나 금액 버튼을 눌러 오늘 매출을 더합니다. 기록은 이 기기에 자동 저장됩니다.</p>
+    </header>
+
+    <section class="panel">
+      <div style="font-size:12px;color:var(--muted)">오늘 누적 매출</div>
+      <div class="salesTotal" id="salesTotal">0원</div>
+      <div style="font-size:12px;color:var(--muted)" id="salesCount">0건</div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <div style="font-weight:800;margin-bottom:6px">누적매출 직접 수정</div>
+        <div class="salesHint" style="margin-bottom:8px">
+          POS 금액과 다를 때 현재 누적매출을 원하는 금액으로 맞춥니다. 기존 추가 기록은 지워지지 않습니다.
+        </div>
+        <div class="salesRow">
+          <input id="salesTotalInput" inputmode="numeric" placeholder="예: 175000">
+          <button id="salesSetTotal">수정</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div style="font-weight:800">가격 바로 추가</div>
+      <div class="salesGrid">
+        <button data-sales-price="11000">+11,000</button>
+        <button data-sales-price="12000">+12,000</button>
+        <button data-sales-price="13000">+13,000</button>
+        <button data-sales-price="13500">+13,500</button>
+        <button data-sales-price="26000">+26,000</button>
+        <button data-sales-price="27000">+27,000</button>
+        <button data-sales-price="33000">+33,000</button>
+        <button data-sales-price="37000">+37,000</button>
+        <button data-sales-price="56000">+56,000</button>
+      </div>
+      <div class="salesRow">
+        <input id="salesCustomPrice" inputmode="numeric" placeholder="직접 가격 입력">
+        <button id="salesAddCustom">추가</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div style="font-weight:800">바코드로 추가</div>
+      <div class="salesHint" style="margin:6px 0 10px">처음 보는 바코드는 상품명·가격을 한 번 등록합니다. 등록 시각·마지막 스캔 시각·스캔 횟수도 함께 저장합니다.</div>
+      <button class="btn" id="salesScanBtn" style="width:100%;background:var(--accent);color:#fff">📷 바코드 스캔 시작</button>
+      <div class="scanbox" id="salesScanBox"><video id="salesVideo" playsinline muted></video></div>
+      <button class="btn" id="salesStopBtn" style="display:none;width:100%;margin-top:8px">카메라 끄기</button>
+      <div class="salesHint" id="salesScanStatus" style="margin-top:8px">Android Chrome + HTTPS(Netlify 등)에서 카메라 인식이 가장 안정적입니다.</div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="font-weight:800">등록된 바코드</div>
+          <button class="btn" id="toggleBarcodeList" style="min-height:36px;padding:0 12px;background:#eef4ef;color:#365c45">보기</button>
+        </div>
+        <div id="barcodeProductList" class="salesList" style="display:none"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div style="font-weight:800">오늘 시작금액</div>
+      <div class="salesHint" style="margin:6px 0 8px">POS에서 이미 발생한 금액부터 이어서 기록할 때 사용합니다.</div>
+      <div class="salesRow">
+        <input id="salesBaseInput" inputmode="numeric" placeholder="예: 162000">
+        <button id="salesSetBase">적용</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:800">최근 기록</div>
+        <button class="btn" id="salesUndo" style="min-height:38px;padding:0 12px">마지막 취소</button>
+      </div>
+      <div class="salesList" id="salesList"></div>
+    </section>
+
+    <section class="panel">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn" id="salesCopy" style="background:#eee9e1">기록 복사</button>
+        <button class="btn" id="salesReset" style="background:#fff0ef;color:var(--danger);border:1px solid #e7c7c4">오늘 매출 초기화</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<dialog id="barcodeDialog"><div class="modal">
+  <h2>새 바코드 등록</h2>
+  <div class="stack">
+    <div style="font-size:12px;color:var(--muted)">바코드 <b id="barcodeCode"></b></div>
+    <input id="barcodeName" placeholder="상품명 (선택)">
+    <input id="barcodePrice" inputmode="numeric" placeholder="가격">
+  </div>
+  <div class="macts"><button id="barcodeCancel">취소</button><button class="ok" id="barcodeSave">저장하고 매출 추가</button></div>
+</div></dialog>
+
+<div class="footerbar"><div class="footerin">
+  <button id="saveImageBottom">현재 재고 이미지 저장</button>
+  <button id="resetAll" class="danger">전체 재고 삭제</button>
+</div></div>
+
+<dialog id="editDialog"><div class="modal">
+  <h2>현재 재고 직접 수정</h2>
+  <div class="stack">
+    <input id="editQty" type="number" inputmode="numeric" min="0">
+    <select id="editUnit" aria-label="단위 수정">
+      <option value="개">개</option><option value="박스">박스</option><option value="팩">팩</option><option value="장">장</option><option value="세트">세트</option><option value="__custom">직접입력</option>
+    </select>
+    <input id="editCustomUnit" maxlength="12" placeholder="단위 직접 입력 (예: 봉, 묶음)" style="display:none">
+    <input id="editLowThreshold" type="number" inputmode="numeric" min="0" placeholder="재고 부족 기준 (비우면 사용 안 함)">
+  </div>
+  <div class="macts"><button id="cancelEdit">취소</button><button class="ok" id="saveEdit">저장</button></div>
+</div></dialog>
+
+<script>
+const KEY='stock-counter-0.1';
+let items=JSON.parse(localStorage.getItem(KEY)||'[]');
+items=items.map(x=>({...x,unit:(x.unit||'개'),lowThreshold:(Number.isInteger(x.lowThreshold)&&x.lowThreshold>=0?x.lowThreshold:null)}));
+let editingId=null;
+let orderUnlocked=false;
+const STOCK_SESSION_KEY='stock-count-session-0.1';
+let stockSession=JSON.parse(localStorage.getItem(STOCK_SESSION_KEY)||'null')||{
+  countedAt:null,
+  baseline:{},
+  postSales:[]
+};
+const $=s=>document.querySelector(s);
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(items));
+  render();
+  renderStockSession();
+}
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+function saveStockSession(){
+  localStorage.setItem(STOCK_SESSION_KEY,JSON.stringify(stockSession));
+  render();
+  renderStockSession();
+}
+function postSoldQty(id){
+  return stockSession.postSales
+    .filter(x=>x.itemId===id)
+    .reduce((a,b)=>a+Number(b.qty||0),0);
+}
+function expectedQty(id){
+  const base=Number(stockSession.baseline?.[id]??0);
+  return Math.max(0,base-postSoldQty(id));
+}
+function fmtCountStamp(v){
+  if(!v)return '';
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return '';
+  return d.toLocaleString('ko-KR',{
+    year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',second:'2-digit'
+  });
+}
+function renderStockSession(){
+  const t=$('#countedAtText');
+  const m=$('#countedAtMeta');
+  const sel=$('#postSaleItem');
+  const list=$('#postSaleList');
+  if(!t||!m||!sel||!list)return;
+
+  if(stockSession.countedAt){
+    t.textContent=fmtCountStamp(stockSession.countedAt);
+    m.textContent=`이 시각의 ${Object.keys(stockSession.baseline||{}).length}개 상품 수량을 기준으로 계산 중입니다.`;
+  }else{
+    t.textContent='아직 기록 없음';
+    m.textContent='재고를 다 센 순간에 버튼을 누르면, 그 시각의 수량을 기준으로 저장합니다.';
+  }
+
+  const current=sel.value;
+  sel.innerHTML=items.length
+    ? items.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')
+    : '<option value="">등록 상품 없음</option>';
+  if([...sel.options].some(o=>o.value===current))sel.value=current;
+
+  if(!stockSession.postSales.length){
+    list.innerHTML='<div class="empty">기준시각 이후 판매 메모가 없습니다.</div>';
+    return;
+  }
+
+  list.innerHTML=[...stockSession.postSales].reverse().map(x=>{
+    const item=items.find(v=>v.id===x.itemId);
+    const name=item?item.name:(x.itemName||'삭제된 상품');
+    return `<div class="postSaleEntry">
+      <div class="topline">
+        <b>${esc(name)} -${Number(x.qty||0)}</b>
+        <button class="linkbtn del" onclick="deletePostSale('${x.id}')">삭제</button>
+      </div>
+      <small>${fmtCountStamp(x.at)}${x.memo?` · ${esc(x.memo)}`:''}</small>
+    </div>`;
+  }).join('');
+}
+
+function render(){
+  $('#types').textContent=items.length;
+  $('#remain').textContent=items.reduce((a,b)=>a+b.qty,0);
+  $('#lowCount').textContent=items.filter(x=>x.lowThreshold!==null&&x.lowThreshold!==undefined&&x.qty<=x.lowThreshold).length;
+  if(!items.length){$('#list').innerHTML='<div class="empty">아직 등록된 상품이 없습니다.<br>위에서 상품명과 수량을 먼저 적어주세요.</div>';return}
+  $('#list').innerHTML=items.map(x=>{
+    const hasLow=x.lowThreshold!==null&&x.lowThreshold!==undefined;
+    const state=x.qty===0?'zero':(hasLow&&x.qty<=x.lowThreshold?'low':'');
+    const badge=x.qty===0?'품절':(hasLow&&x.qty<=x.lowThreshold?`재고 적음 · ${x.lowThreshold}${esc(x.unit||'개')} 이하`:(hasLow?`기준 ${x.lowThreshold}${esc(x.unit||'개')}`:'기준 없음'));
+    return `<article class="item ${state}">
+      <div class="row"><span class="orderNum">${items.indexOf(x)+1}</span><div class="name">${esc(x.name)}</div><span class="badge ${state}">${badge}</span></div>
+      <div class="qty">${x.qty}<small>${esc(x.unit||'개')} 남음</small></div>
+      ${stockSession.countedAt && Object.prototype.hasOwnProperty.call(stockSession.baseline,x.id)
+        ? `<div class="expected ${expectedQty(x.id)<=Number(x.lowThreshold??-1)&&x.lowThreshold!==null?'warn':''}">
+             기준 ${stockSession.baseline[x.id]}${esc(x.unit||'개')} → 이후판매 ${postSoldQty(x.id)} → 예상 ${expectedQty(x.id)}${esc(x.unit||'개')}
+           </div>`
+        : ''}
+      <div class="actions">
+        <button class="btn sell" onclick="minusOne('${x.id}')" ${x.qty<=0?'disabled style="opacity:.4"':''}>재고 -1</button>
+        <button class="btn undo" onclick="plusOne('${x.id}')">+1 되돌리기</button>
+        <button class="btn edit" onclick="editOne('${x.id}')">수정</button>
+      </div>
+      <div class="orderTools" style="${orderUnlocked?'display:flex':'display:none'}">
+        <button onclick="moveItem('${x.id}',-1)" ${items.indexOf(x)===0?'disabled':''}>▲ 위로</button>
+        <button onclick="moveItem('${x.id}',1)" ${items.indexOf(x)===items.length-1?'disabled':''}>▼ 아래로</button>
+      </div>
+      <div class="subactions"><button class="linkbtn del" onclick="deleteOne('${x.id}')">상품 삭제</button></div>
+    </article>`
+  }).join('')
+}
+function add(){
+  const name=$('#name').value.trim(); const qty=Number($('#qty').value);
+  const unit=$('#unit').value==='__custom'?$('#customUnit').value.trim():$('#unit').value;
+  const lowRaw=$('#lowThreshold').value.trim();
+  const lowThreshold=lowRaw===''?null:Number(lowRaw);
+  if(!name)return alert('상품명을 적어주세요.');
+  if(!Number.isInteger(qty)||qty<0)return alert('초기 수량을 0 이상의 숫자로 적어주세요.');
+  if(!unit)return alert('단위를 적어주세요.');
+  if(lowThreshold!==null&&(!Number.isInteger(lowThreshold)||lowThreshold<0))return alert('재고 부족 기준은 0 이상의 숫자로 적어주세요.');
+  items.unshift({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name,qty,sold:0,unit,lowThreshold});
+  $('#name').value='';$('#qty').value='';$('#unit').value='개';$('#customUnit').value='';$('#customUnit').style.display='none';$('#lowThreshold').value='';save();$('#name').focus();
+}
+window.minusOne=id=>{const x=items.find(v=>v.id===id);if(!x||x.qty<=0)return;x.qty--;save()}
+window.plusOne=id=>{const x=items.find(v=>v.id===id);if(!x)return;x.qty++;save()}
+window.moveItem=(id,dir)=>{
+  if(!orderUnlocked)return;
+  const i=items.findIndex(v=>v.id===id);
+  const j=i+dir;
+  if(i<0||j<0||j>=items.length)return;
+  [items[i],items[j]]=[items[j],items[i]];
+  save();
+}
+$('#toggleOrder').onclick=()=>{
+  orderUnlocked=!orderUnlocked;
+  $('#toggleOrder').textContent=orderUnlocked?'순서 고정':'순서 변경';
+  $('#orderState').textContent=orderUnlocked?'변경 가능 · 끝나면 고정하세요':'순서 고정됨';
+  $('#toggleOrder').style.background=orderUnlocked?'#fff0eb':'#eef4ef';
+  $('#toggleOrder').style.color=orderUnlocked?'#b93631':'#365c45';
+  render();
+};
+window.editOne=id=>{const x=items.find(v=>v.id===id);if(!x)return;editingId=id;$('#editQty').value=x.qty;$('#editLowThreshold').value=(x.lowThreshold===null||x.lowThreshold===undefined)?'':x.lowThreshold;const presets=['개','박스','팩','장','세트'];if(presets.includes(x.unit||'개')){$('#editUnit').value=x.unit||'개';$('#editCustomUnit').style.display='none';$('#editCustomUnit').value=''}else{$('#editUnit').value='__custom';$('#editCustomUnit').style.display='block';$('#editCustomUnit').value=x.unit||''}$('#editDialog').showModal();setTimeout(()=>$('#editQty').select(),50)}
+window.deleteOne=id=>{const x=items.find(v=>v.id===id);if(confirm(`'${x.name}'을 삭제할까요?`)){items=items.filter(v=>v.id!==id);save()}}
+$('#unit').addEventListener('change',()=>{$('#customUnit').style.display=$('#unit').value==='__custom'?'block':'none';if($('#unit').value==='__custom')$('#customUnit').focus()});
+$('#editUnit').addEventListener('change',()=>{$('#editCustomUnit').style.display=$('#editUnit').value==='__custom'?'block':'none';if($('#editUnit').value==='__custom')$('#editCustomUnit').focus()});
+$('#addBtn').addEventListener('click',add);$('#qty').addEventListener('keydown',e=>{if(e.key==='Enter')add()});$('#name').addEventListener('keydown',e=>{if(e.key==='Enter')$('#qty').focus()});
+$('#cancelEdit').onclick=()=>$('#editDialog').close();
+$('#saveEdit').onclick=()=>{const n=Number($('#editQty').value);if(!Number.isInteger(n)||n<0)return alert('0 이상의 숫자를 적어주세요.');const unit=$('#editUnit').value==='__custom'?$('#editCustomUnit').value.trim():$('#editUnit').value;if(!unit)return alert('단위를 적어주세요.');const x=items.find(v=>v.id===editingId);const lowRaw=$('#editLowThreshold').value.trim();const lowThreshold=lowRaw===''?null:Number(lowRaw);if(lowThreshold!==null&&(!Number.isInteger(lowThreshold)||lowThreshold<0))return alert('재고 부족 기준은 0 이상의 숫자로 적어주세요.');if(x){x.qty=n;x.unit=unit;x.lowThreshold=lowThreshold}$('#editDialog').close();save()};
+
+
+$('#markCountDone').onclick=()=>{
+  if(!items.length)return alert('먼저 상품과 재고를 등록해주세요.');
+  const now=new Date().toISOString();
+  const baseline={};
+  items.forEach(x=>baseline[x.id]=Number(x.qty||0));
+
+  const msg=stockSession.countedAt
+    ? `기존 기준시각 ${fmtCountStamp(stockSession.countedAt)}을 지금으로 바꿀까요?\n기존 이후 판매 메모는 새 기준에 맞지 않아 초기화됩니다.`
+    : '지금 화면의 재고 수량을 기준재고로 저장할까요?';
+
+  if(!confirm(msg))return;
+  stockSession={
+    countedAt:now,
+    baseline,
+    postSales:[]
+  };
+  saveStockSession();
+};
+
+$('#addPostSale').onclick=()=>{
+  if(!stockSession.countedAt)return alert('먼저 "지금 수량을 기준재고로 저장"을 눌러 기준시각을 기록해주세요.');
+  const itemId=$('#postSaleItem').value;
+  const item=items.find(x=>x.id===itemId);
+  const qty=Number($('#postSaleQty').value);
+  const memo=$('#postSaleMemo').value.trim();
+
+  if(!item)return alert('상품을 선택해주세요.');
+  if(!Number.isInteger(qty)||qty<=0)return alert('판매수량을 1 이상의 숫자로 적어주세요.');
+
+  const remain=expectedQty(itemId);
+  if(qty>remain){
+    if(!confirm(`현재 예상재고는 ${remain}${item.unit||'개'}입니다. ${qty}${item.unit||'개'} 판매로 기록할까요?`))return;
+  }
+
+  stockSession.postSales.push({
+    id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+    itemId,
+    itemName:item.name,
+    qty,
+    memo,
+    at:new Date().toISOString()
+  });
+  $('#postSaleQty').value='';
+  $('#postSaleMemo').value='';
+  saveStockSession();
+};
+
+window.deletePostSale=id=>{
+  const x=stockSession.postSales.find(v=>v.id===id);
+  if(!x)return;
+  if(confirm('이 판매 메모를 삭제할까요?')){
+    stockSession.postSales=stockSession.postSales.filter(v=>v.id!==id);
+    saveStockSession();
+  }
+};
+
+function makeBackup(){
+  return {app:'재고조사',version:'0.1.4',exportedAt:new Date().toISOString(),items:items,stockSession:stockSession};
+}
+function exportBackup(){
+  const data=JSON.stringify(makeBackup(),null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date();
+  const ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  a.href=url;a.download=`재고조사_백업_${ymd}.json`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function normalizeImported(arr){
+  if(!Array.isArray(arr)) throw new Error('items가 없습니다.');
+  return arr.map((x,i)=>({
+    id:x.id||String(Date.now()+i+Math.random()),
+    name:String(x.name||'').trim(),
+    qty:Math.max(0,Number.isFinite(Number(x.qty))?Math.floor(Number(x.qty)):0),
+    sold:Math.max(0,Number.isFinite(Number(x.sold))?Math.floor(Number(x.sold)):0),
+    unit:String(x.unit||'개').trim()||'개',
+    lowThreshold:(Number.isInteger(Number(x.lowThreshold))&&Number(x.lowThreshold)>=0?Number(x.lowThreshold):null)
+  })).filter(x=>x.name);
+}
+function importBackupFile(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const parsed=JSON.parse(reader.result);
+      const incoming=normalizeImported(Array.isArray(parsed)?parsed:parsed.items);
+      if(!incoming.length) return alert('가져올 상품 데이터가 없습니다.');
+      const msg=items.length?`현재 ${items.length}개 상품을 백업 데이터 ${incoming.length}개로 바꿀까요?`:`백업 데이터 ${incoming.length}개를 가져올까요?`;
+      if(!confirm(msg)) return;
+      items=incoming;save();
+      alert('백업 데이터를 불러왔습니다.');
+    }catch(e){alert('백업 파일을 읽지 못했습니다. 재고조사에서 내보낸 JSON 파일인지 확인해주세요.');}
+  };
+  reader.readAsText(file);
+}
+$('#exportData').onclick=exportBackup;
+$('#importData').onclick=()=>$('#importFile').click();
+$('#importFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)importBackupFile(f);e.target.value='';});
+
+
+function saveInventoryImage(){
+  const rows=items.length?items:[{name:'등록된 상품 없음',qty:'-',unit:''}];
+  const width=1080, pad=70, header=180, rowH=92;
+  const height=Math.max(520, header + rows.length*rowH + 110);
+  const c=document.createElement('canvas'); c.width=width; c.height=height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#f6f3ed'; ctx.fillRect(0,0,width,height);
+  ctx.fillStyle='#25221e'; ctx.font='700 48px system-ui, sans-serif'; ctx.fillText('현재 재고',pad,82);
+  const now=new Date();
+  const stamp=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  ctx.fillStyle='#777066'; ctx.font='28px system-ui, sans-serif'; ctx.fillText(stamp,pad,128);
+  rows.forEach((x,i)=>{
+    const y=header+i*rowH;
+    ctx.fillStyle='#ffffff'; ctx.fillRect(pad,y,width-pad*2,rowH-12);
+    ctx.fillStyle='#25221e'; ctx.font='600 30px system-ui, sans-serif';
+    let name=String(x.name||''); if(name.length>26) name=name.slice(0,25)+'…';
+    ctx.fillText(name,pad+28,y+50);
+    ctx.textAlign='right'; ctx.font='800 34px system-ui, sans-serif';
+    ctx.fillText(`${x.qty}${x.unit||''}`,width-pad-28,y+52); ctx.textAlign='left';
+  });
+  ctx.fillStyle='#777066'; ctx.font='24px system-ui, sans-serif';
+  ctx.fillText(`상품 ${items.length}종 · 총수량 ${items.reduce((a,b)=>a+b.qty,0)}`,pad,height-45);
+  const a=document.createElement('a'); a.href=c.toDataURL('image/png');
+  a.download=`현재재고_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$('#saveImage').onclick=saveInventoryImage;
+$('#saveImageBottom').onclick=saveInventoryImage;
+
+$('#resetAll').onclick=()=>{
+  if(confirm('등록한 상품과 재고를 전부 삭제할까요?')){
+    if(confirm('정말 전체 삭제합니다. 되돌릴 수 없습니다.')){
+      items=[];
+      stockSession={countedAt:null,baseline:{},postSales:[]};
+      localStorage.setItem(STOCK_SESSION_KEY,JSON.stringify(stockSession));
+      save();
+    }
+  }
+};
+
+const SALES_KEY='popup-sales-0.1';
+const SALES_PRODUCTS_KEY='popup-sales-products-0.1';
+const dayKey=()=>{
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+let salesDB=JSON.parse(localStorage.getItem(SALES_KEY)||'{}');
+let salesProducts=JSON.parse(localStorage.getItem(SALES_PRODUCTS_KEY)||'{}');
+let salesDay=salesDB[dayKey()]||{base:0,items:[]};
+if(dayKey()==='2026-08-08' && !salesDB[dayKey()]){
+  salesDay={base:162000,items:[]};
+  salesDB[dayKey()]=salesDay;
+  localStorage.setItem(SALES_KEY,JSON.stringify(salesDB));
+}
+const money=n=>Number(n||0).toLocaleString('ko-KR')+'원';
+const salesTime=()=>new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+const stamp=()=>new Date().toISOString();
+const showStamp=v=>{
+  if(!v)return '-';
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return '-';
+  return d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+};
+
+function saveSales(){
+  salesDB[dayKey()]=salesDay;
+  localStorage.setItem(SALES_KEY,JSON.stringify(salesDB));
+  localStorage.setItem(SALES_PRODUCTS_KEY,JSON.stringify(salesProducts));
+  renderSales();
+}
+function renderSales(){
+  const total=salesDay.base+salesDay.items.reduce((a,b)=>a+b.price,0);
+  $('#salesTotal').textContent=money(total);
+  $('#salesCount').textContent=`추가 기록 ${salesDay.items.length}건 · 시작금액 ${money(salesDay.base)}`;
+  const list=$('#salesList');
+  if(!salesDay.items.length){
+    list.innerHTML='<div class="empty">아직 추가한 매출 기록이 없습니다.</div>';
+  }else{
+    list.innerHTML=[...salesDay.items].reverse().slice(0,20).map(x=>`
+    <div class="salesEntry">
+      <div><b>${esc(x.name||'직접 입력')}</b><br><small>${esc(x.time||'')}${x.code?' · '+esc(x.code):''}</small></div>
+      <b>+${money(x.price)}</b>
+    </div>`).join('');
+  }
+  renderBarcodeProducts();
+}
+function renderBarcodeProducts(){
+  const box=$('#barcodeProductList');
+  if(!box)return;
+  const rows=Object.entries(salesProducts);
+  if(!rows.length){
+    box.innerHTML='<div class="empty">아직 등록된 바코드가 없습니다.</div>';
+    return;
+  }
+  box.innerHTML=rows.map(([code,p])=>`
+    <div class="salesEntry" style="align-items:flex-start">
+      <div>
+        <b>${esc(p.name||'등록 상품')}</b><br>
+        <small>${esc(code)}</small><br>
+        <small>등록 ${showStamp(p.registeredAt)} · 최근 ${showStamp(p.lastScannedAt)} · ${Number(p.scanCount||0)}회</small>
+      </div>
+      <b>${money(p.price)}</b>
+    </div>`).join('');
+}
+function addSale(price,name='직접 입력',code=''){
+  price=Number(price);
+  if(!Number.isFinite(price)||price<=0)return;
+  salesDay.items.push({price,name,code,time:salesTime()});
+  saveSales();
+}
+document.querySelectorAll('[data-sales-price]').forEach(b=>b.onclick=()=>addSale(b.dataset.salesPrice,'가격 버튼'));
+$('#salesAddCustom').onclick=()=>{
+  const v=Number($('#salesCustomPrice').value.replace(/,/g,''));
+  if(!v)return alert('가격을 적어주세요.');
+  addSale(v,'직접 입력'); $('#salesCustomPrice').value='';
+};
+$('#salesSetBase').onclick=()=>{
+  const v=Number($('#salesBaseInput').value.replace(/,/g,''));
+  if(!Number.isFinite(v)||v<0)return alert('0 이상의 금액을 적어주세요.');
+  salesDay.base=v; $('#salesBaseInput').value=''; saveSales();
+};
+$('#salesSetTotal').onclick=()=>{
+  const target=Number($('#salesTotalInput').value.replace(/,/g,''));
+  if(!Number.isFinite(target)||target<0)return alert('0 이상의 누적매출을 적어주세요.');
+
+  const added=salesDay.items.reduce((a,b)=>a+b.price,0);
+  const current=salesDay.base+added;
+
+  if(!confirm(`현재 누적매출 ${money(current)}을 ${money(target)}으로 수정할까요?\n기존 추가 기록은 그대로 유지됩니다.`)) return;
+
+  // 현재 총액 = 시작금액 + 추가기록 합계
+  // 따라서 원하는 총액에 맞도록 시작금액만 역산해서 조정한다.
+  salesDay.base=target-added;
+  $('#salesTotalInput').value='';
+  saveSales();
+};
+$('#salesUndo').onclick=()=>{if(salesDay.items.length){salesDay.items.pop();saveSales()}};
+$('#salesReset').onclick=()=>{if(confirm('오늘 매출 기록을 전부 초기화할까요?')){salesDay={base:0,items:[]};saveSales()}};
+$('#salesCopy').onclick=async()=>{
+  const total=salesDay.base+salesDay.items.reduce((a,b)=>a+b.price,0);
+  const text=`${dayKey()} 매출 ${money(total)}\n시작금액 ${money(salesDay.base)}\n`+
+    salesDay.items.map(x=>`${x.time} ${x.name} +${money(x.price)}`).join('\n');
+  try{await navigator.clipboard.writeText(text);alert('매출 기록을 복사했습니다.')}
+  catch(e){prompt('아래 내용을 복사하세요.',text)}
+};
+
+$('#stockTabBtn').onclick=()=>switchTab('stock');
+$('#salesTabBtn').onclick=()=>switchTab('sales');
+function switchTab(which){
+  const stock=which==='stock';
+  $('#stockPage').classList.toggle('active',stock);
+  $('#salesPage').classList.toggle('active',!stock);
+  $('#stockTabBtn').classList.toggle('active',stock);
+  $('#salesTabBtn').classList.toggle('active',!stock);
+  document.querySelector('.footerbar').style.display=stock?'block':'none';
+}
+
+let salesStream=null, salesDetecting=false, pendingBarcode='';
+async function stopSalesScan(){
+  salesDetecting=false;
+  if(salesStream)salesStream.getTracks().forEach(t=>t.stop());
+  salesStream=null;
+  $('#salesScanBox').style.display='none';
+  $('#salesStopBtn').style.display='none';
+}
+async function processBarcode(code){
+  await stopSalesScan();
+  if(salesProducts[code]){
+    const p=salesProducts[code];
+    p.lastScannedAt=stamp();
+    p.scanCount=Number(p.scanCount||0)+1;
+    localStorage.setItem(SALES_PRODUCTS_KEY,JSON.stringify(salesProducts));
+    addSale(p.price,p.name||'등록 상품',code);
+    $('#salesScanStatus').textContent=`추가 완료: ${p.name||code} ${money(p.price)} · ${salesTime()}`;
+  }else{
+    pendingBarcode=code;
+    $('#barcodeCode').textContent=code;
+    $('#barcodeName').value='';
+    $('#barcodePrice').value='';
+    $('#barcodeDialog').showModal();
+  }
+}
+$('#salesScanBtn').onclick=async()=>{
+  if(!('BarcodeDetector' in window)){
+    $('#salesScanStatus').textContent='이 브라우저에서는 자동 바코드 인식이 지원되지 않습니다. 가격 버튼/직접 입력을 사용하세요.';
+    return;
+  }
+  try{
+    const supported=await BarcodeDetector.getSupportedFormats();
+    const want=['ean_13','ean_8','upc_a','upc_e','code_128','code_39'];
+    const detector=new BarcodeDetector({formats:supported.filter(x=>want.includes(x))});
+    salesStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+    $('#salesVideo').srcObject=salesStream; await $('#salesVideo').play();
+    $('#salesScanBox').style.display='block'; $('#salesStopBtn').style.display='block'; salesDetecting=true;
+    $('#salesScanStatus').textContent='바코드를 화면 중앙에 맞춰주세요.';
+    const loop=async()=>{
+      if(!salesDetecting)return;
+      try{
+        const result=await detector.detect($('#salesVideo'));
+        if(result.length){processBarcode(result[0].rawValue);return}
+      }catch(e){}
+      requestAnimationFrame(loop);
+    };
+    loop();
+  }catch(e){
+    $('#salesScanStatus').textContent='카메라를 열지 못했습니다. HTTPS 배포 후 카메라 권한을 허용해주세요.';
+  }
+};
+$('#salesStopBtn').onclick=stopSalesScan;
+
+$('#toggleBarcodeList').onclick=()=>{
+  const box=$('#barcodeProductList');
+  const open=box.style.display!=='none';
+  box.style.display=open?'none':'grid';
+  $('#toggleBarcodeList').textContent=open?'보기':'닫기';
+  if(!open)renderBarcodeProducts();
+};
+
+$('#barcodeCancel').onclick=()=>{$('#barcodeDialog').close();pendingBarcode=''};
+$('#barcodeSave').onclick=()=>{
+  const price=Number($('#barcodePrice').value.replace(/,/g,''));
+  if(!price)return alert('가격을 적어주세요.');
+  const name=$('#barcodeName').value.trim()||'등록 상품';
+  const nowStamp=stamp();
+  salesProducts[pendingBarcode]={
+    name,
+    price,
+    registeredAt:nowStamp,
+    lastScannedAt:nowStamp,
+    scanCount:1
+  };
+  addSale(price,name,pendingBarcode);
+  $('#barcodeDialog').close();
+  pendingBarcode='';
+};
+renderSales();
+
+render();
+</script>
+</body>
+</html>
